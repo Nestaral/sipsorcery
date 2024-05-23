@@ -106,7 +106,7 @@ namespace SIPSorcery.Media
             : base(new RtpSessionConfig
             {
                 IsMediaMultiplexed = false,
-                IsRtcpMultiplexed = false,
+                IsRtcpMultiplexed = true,
                 RtpSecureMediaOption = config.RtpSecureMediaOption,
                 BindAddress = config.BindAddress,
                 BindPort = config.BindPort,

@@ -493,6 +493,8 @@ namespace SIPSorcery.SIP.App
         /// <param name="mediaSession">The media session used for this call</param>
         /// <param name="ringTimeout">Optional. If non-zero will be treated as the number of seconds to let the call
         /// ring for before giving up and cancelling.</param>
+        SIPEndPoint serverEndPoint;
+        SDP firstSDP;
         public async Task InitiateCallAsync(SIPCallDescriptor sipCallDescriptor, IMediaSession mediaSession, int ringTimeout = 0)
         {
             m_cts = new CancellationTokenSource();
@@ -507,7 +509,7 @@ namespace SIPSorcery.SIP.App
             m_uac.CallFailed += ClientCallFailedHandler;
 
             // Can be DNS lookups involved in getting the call destination.
-            SIPEndPoint serverEndPoint = await m_uac.GetCallDestination(sipCallDescriptor).ConfigureAwait(false);
+            serverEndPoint = await m_uac.GetCallDestination(sipCallDescriptor).ConfigureAwait(false);
 
             if (serverEndPoint != null)
             {
@@ -519,7 +521,7 @@ namespace SIPSorcery.SIP.App
 
                 if (string.IsNullOrEmpty(sipCallDescriptor.Content))
                 {
-                    var sdp = mediaSession.CreateOffer(sdpAnnounceAddress);
+                    var sdp = firstSDP = mediaSession.CreateOffer(sdpAnnounceAddress);
                     if (sdp == null)
                     {
                         ClientCallFailed?.Invoke(m_uac, $"Could not generate an offer.", null);
@@ -714,6 +716,7 @@ namespace SIPSorcery.SIP.App
                     else
                     {
                         var sdpAnswer = MediaSession.CreateAnswer(publicIpAddress);
+                        firstSDP = sdpAnswer;
                         sdp = sdpAnswer.ToString();
                     }
                 }
@@ -722,6 +725,7 @@ namespace SIPSorcery.SIP.App
                     // No SDP offer was included in the INVITE request need to wait for the ACK.
                     var sdpAnnounceAddress = MediaSession.RtpBindAddress ?? NetServices.GetLocalAddressForRemote(sipRequest.RemoteSIPEndPoint.GetIPEndPoint().Address);
                     var sdpOffer = MediaSession.CreateOffer(sdpAnnounceAddress);
+                    firstSDP = sdpOffer;
                     sdp = sdpOffer.ToString();
                 }
 
@@ -859,7 +863,7 @@ namespace SIPSorcery.SIP.App
             // The action we take to put a call on hold is to switch the media status
             // to send only and change the audio input from a capture device to on hold
             // music.
-            ApplyHoldAndReinvite();
+            ApplyHoldAndReinvite(); //firstSDP
         }
 
         /// <summary>
@@ -874,7 +878,7 @@ namespace SIPSorcery.SIP.App
         /// <summary>
         /// Updates the stream status of the RTP session and sends the re-INVITE request.
         /// </summary>
-        private void ApplyHoldAndReinvite()
+        private void ApplyHoldAndReinvite(SDP firstSDP = null)
         {
             var streamStatus = GetStreamStatusForOnHoldState();
 
@@ -888,7 +892,7 @@ namespace SIPSorcery.SIP.App
                 MediaSession.SetMediaStreamStatus(SDPMediaTypesEnum.video, streamStatus);
             }
 
-            var sdp = MediaSession.CreateOffer(null);
+            var sdp = firstSDP != null ? firstSDP : MediaSession.CreateOffer(null);
             SendReInviteRequest(sdp);
         }
 
@@ -998,7 +1002,7 @@ namespace SIPSorcery.SIP.App
 
                 try
                 {
-                    SDP offer = SDP.ParseSDPDescription(sipRequest.Body);
+                    SDP offer = sipRequest.Body == null ? null : SDP.ParseSDPDescription(sipRequest.Body);
 
                     if (sipRequest.Header.CallId == _oldCallID)
                     {
@@ -1006,6 +1010,29 @@ namespace SIPSorcery.SIP.App
                         // the purpose of the request is to place us on hold. We'll respond with OK but not update any local state.
                         var answerSdp = MediaSession.CreateAnswer(null);
                         var okResponse = reInviteTransaction.GetOkResponse(SDP.SDP_MIME_CONTENTTYPE, answerSdp.ToString());
+                        reInviteTransaction.SendFinalResponse(okResponse);
+                    }
+                    else if (offer == null)
+                    {
+                        CheckRemotePartyHoldCondition();
+
+                        if (MediaSession.HasAudio)
+                        {
+                            MediaSession.SetMediaStreamStatus(SDPMediaTypesEnum.audio, GetStreamStatusForOnHoldState());
+                        }
+
+                        if (MediaSession.HasVideo)
+                        {
+                            MediaSession.SetMediaStreamStatus(SDPMediaTypesEnum.video, GetStreamStatusForOnHoldState());
+                        }
+
+                        var answerSdp = MediaSession.CreateAnswer(null);
+
+                        m_sipDialogue.RemoteSDP = sipRequest.Body;
+                        m_sipDialogue.SDP = answerSdp.ToString();
+                        m_sipDialogue.RemoteCSeq = sipRequest.Header.CSeq;
+
+                        var okResponse = reInviteTransaction.GetOkResponse(SDP.SDP_MIME_CONTENTTYPE, MediaSession.RemoteDescription.ToString());
                         reInviteTransaction.SendFinalResponse(okResponse);
                     }
                     else
@@ -1034,7 +1061,6 @@ namespace SIPSorcery.SIP.App
                             }
 
                             var answerSdp = MediaSession.CreateAnswer(null);
-
                             m_sipDialogue.RemoteSDP = sipRequest.Body;
                             m_sipDialogue.SDP = answerSdp.ToString();
                             m_sipDialogue.RemoteCSeq = sipRequest.Header.CSeq;
@@ -1261,10 +1287,21 @@ namespace SIPSorcery.SIP.App
             {
                 m_sipDialogue.SDP = sdp.ToString();
 
+                var bdy = sdp.ToString();
+                if (bdy.Contains("sendrecv") && firstSDP != null)
+                {
+                    bdy = firstSDP.ToString();
+                    if (!bdy.Contains("a=mid:"))
+                    {
+                        bdy += "a=mid:0" + "\r\n";
+                    }
+
+                }
+
                 var reinviteRequest = m_sipDialogue.GetInDialogRequest(SIPMethodsEnum.INVITE);
                 reinviteRequest.Header.UserAgent = SIPConstants.SipUserAgentVersionString;
                 reinviteRequest.Header.ContentType = m_sdpContentType;
-                reinviteRequest.Body = sdp.ToString();
+                reinviteRequest.Body = bdy;
                 reinviteRequest.Header.Supported = SIPExtensionHeaders.REPLACES + ", " + SIPExtensionHeaders.NO_REFER_SUB + ", " + SIPExtensionHeaders.PRACK;
 
                 if (m_uac != null)
@@ -1810,9 +1847,9 @@ namespace SIPSorcery.SIP.App
         /// call hold status has changed.
         /// </summary>
         /// <param name="remoteSDP">The in-dialog SDP received from he remote party.</param>
-        private void CheckRemotePartyHoldCondition(SDP remoteSDP)
+        private void CheckRemotePartyHoldCondition(SDP remoteSDP = null)
         {
-            var mediaStreamStatus = remoteSDP.GetMediaStreamStatus(SDPMediaTypesEnum.audio, 0);
+            var mediaStreamStatus = remoteSDP?.GetMediaStreamStatus(SDPMediaTypesEnum.audio, 0) ?? MediaStreamStatusEnum.SendOnly;
 
             if (mediaStreamStatus == MediaStreamStatusEnum.SendOnly)
             {
