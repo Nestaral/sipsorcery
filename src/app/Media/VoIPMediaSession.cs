@@ -75,7 +75,7 @@ namespace SIPSorcery.Media
             _audioExtrasSource.OnAudioSourceEncodedSample += SendAudio;
             _audioExtrasSource.SetSource(AudioSourcesEnum.Music);
 
-            if(restrictFormats != null)
+            if (restrictFormats != null)
             {
                 _audioExtrasSource.RestrictFormats(restrictFormats);
             }
@@ -162,7 +162,7 @@ namespace SIPSorcery.Media
 
             base.OnAudioFormatsNegotiated += AudioFormatsNegotiated;
             base.OnVideoFormatsNegotiated += VideoFormatsNegotiated;
-            
+
         }
 
         private async void VideoSource_OnVideoSourceError(string errorMessage)
@@ -311,15 +311,15 @@ namespace SIPSorcery.Media
             }
         }
 
-        public async void TakeOffHold()
+        public async Task TakeOffHold(bool hasAudio = false, bool hasVideo = false)
         {
-            if (HasAudio)
+            if (HasAudio || hasAudio)
             {
                 _audioExtrasSource.SetSource(AudioSourcesEnum.None);
                 await Media.AudioSource.ResumeAudio().ConfigureAwait(false);
             }
 
-            if (HasVideo)
+            if (HasVideo || hasVideo)
             {
                 await _videoTestPatternSource.PauseVideo().ConfigureAwait(false);
 
