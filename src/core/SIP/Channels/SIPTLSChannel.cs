@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // Filename: SIPTLSChannel.cs
 //
 // Description: SIP transport for TLS over TCP.
@@ -100,11 +100,12 @@ namespace SIPSorcery.SIP
         /// <param name="streamConnection">The stream connection holding the newly accepted client socket.</param>
         protected async Task OnAcceptAsync(SIPStreamConnection streamConnection)
         {
-            NetworkStream networkStream = new NetworkStream(streamConnection.StreamSocket, true);
             SslStream sslStream = null;
-
             try
             {
+                NetworkStream networkStream = new NetworkStream(streamConnection.StreamSocket, true);
+
+
                 sslStream = new SslStream(networkStream, false);
                 using (var cts = new CancellationTokenSource())
                 {
@@ -139,7 +140,7 @@ namespace SIPSorcery.SIP
 
                 sslStream.BeginRead(streamConnection.SslStreamBuffer, 0, SIPStreamConnection.MaxSIPTCPMessageSize, new AsyncCallback(OnReadCallback), streamConnection);
             }
-            catch(Exception ex) 
+            catch (Exception ex)
             {
                 logger.LogError(ex, "SIP TLS channel could not connect to remote host. {exception}", ex.Message);
                 sslStream?.Close();
@@ -161,7 +162,7 @@ namespace SIPSorcery.SIP
             var sslStreamTask = m_clientCertificates != null ? sslStream.AuthenticateAsClientAsync(serverCertificateName, m_clientCertificates, System.Security.Authentication.SslProtocols.None, false) : sslStream.AuthenticateAsClientAsync(serverCertificateName);
             await Task.WhenAny(sslStreamTask, timeoutTask).ConfigureAwait(false);
 
-            if(sslStreamTask.IsCompleted)
+            if (sslStreamTask.IsCompleted)
             {
                 if (!sslStream.IsAuthenticated)
                 {
