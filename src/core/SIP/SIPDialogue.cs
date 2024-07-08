@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // Filename: SIPDialogue.cs
 //
 // Description: Base class for SIP dialogues. 
@@ -379,6 +379,13 @@ namespace SIPSorcery.SIP
         public SIPRequest GetInDialogRequest(SIPMethodsEnum method, SIPURI target = null)
         {
             CSeq++;
+
+            var sipuri = RemoteTarget;
+
+            if (RemoteTarget.Parameters.ToString().Contains("tls") && String.IsNullOrEmpty(RemoteTarget?.HostPort))
+            {
+                sipuri.Host = $"{RemoteTarget.Host}:{SIPConstants.DEFAULT_SIP_TLS_PORT}";
+            }
 
             SIPRequest inDialogRequest = new SIPRequest(method, target ?? RemoteTarget);
             SIPFromHeader fromHeader = SIPFromHeader.ParseFromHeader(LocalUserField.ToString());

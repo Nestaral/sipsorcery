@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // Filename: SIPUserAgent.cs
 //
 // Description: A "full" SIP user agent that encompasses both client and server 
@@ -1982,17 +1982,17 @@ namespace SIPSorcery.SIP.App
             TryReleaseSemaphore();
             m_semaphoreSlim.Dispose();
         }
-		
-		private void TryReleaseSemaphore()
-		{
-			try
-			{
-				m_semaphoreSlim.Release();
-			}
-			catch (ObjectDisposedException)
-			{
-				//Swallow it
-			}
-		}
+
+        private void TryReleaseSemaphore()
+        {
+            try
+            {
+                m_semaphoreSlim.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+                //Swallow it
+            }
+        }
     }
 }

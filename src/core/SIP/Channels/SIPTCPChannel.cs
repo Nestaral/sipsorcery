@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // Filename: SIPTCPChannel.cs
 //
 // Description: SIP transport for TCP. Note this is also the base class for the
@@ -103,8 +103,8 @@ namespace SIPSorcery.SIP
         public SIPTCPChannel(
             IPEndPoint endPoint,
             SIPProtocolsEnum protocol,
-            bool canListen=true,
-            bool useDualMode=false) : this(endPoint, protocol,SIPConstants.DEFAULT_ENCODING, SIPConstants.DEFAULT_ENCODING, canListen, useDualMode)
+            bool canListen = true,
+            bool useDualMode = false) : this(endPoint, protocol, SIPConstants.DEFAULT_ENCODING, SIPConstants.DEFAULT_ENCODING, canListen, useDualMode)
         {
 
         }
@@ -119,12 +119,12 @@ namespace SIPSorcery.SIP
         /// A TLS channel without a certificate cannot listen.</param>
         /// <param name="sipEncoding"></param>
         public SIPTCPChannel(
-            IPEndPoint endPoint, 
-            SIPProtocolsEnum protocol, 
+            IPEndPoint endPoint,
+            SIPProtocolsEnum protocol,
             Encoding sipEncoding,
             Encoding sipBodyEncoding,
-            bool canListen, 
-            bool useDualMode) : base(sipEncoding,sipBodyEncoding)
+            bool canListen,
+            bool useDualMode) : base(sipEncoding, sipBodyEncoding)
         {
             if (endPoint == null)
             {
@@ -164,8 +164,8 @@ namespace SIPSorcery.SIP
             : this(endPoint, SIPProtocolsEnum.tcp, true, useDualMode)
         { }
 
-        public SIPTCPChannel(IPEndPoint endPoint,Encoding sipEncoding,Encoding sipBodyEncoding, bool useDualMode = false)
-            : this(endPoint, SIPProtocolsEnum.tcp, sipEncoding,sipBodyEncoding,true, useDualMode)
+        public SIPTCPChannel(IPEndPoint endPoint, Encoding sipEncoding, Encoding sipBodyEncoding, bool useDualMode = false)
+            : this(endPoint, SIPProtocolsEnum.tcp, sipEncoding, sipBodyEncoding, true, useDualMode)
         { }
 
         public SIPTCPChannel(IPAddress listenAddress, int listenPort, bool useDualMode = false)
@@ -194,7 +194,7 @@ namespace SIPSorcery.SIP
                         clientSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                         clientSocket.LingerState = new LingerOption(true, 0);
 
-                        SIPStreamConnection sipStmConn = new SIPStreamConnection(clientSocket,  SIPEncoding,SIPBodyEncoding,remoteEndPoint, SIPProtocol);
+                        SIPStreamConnection sipStmConn = new SIPStreamConnection(clientSocket, SIPEncoding, SIPBodyEncoding, remoteEndPoint, SIPProtocol);
                         sipStmConn.SIPMessageReceived += SIPTCPMessageReceived;
 
                         m_connections.TryAdd(sipStmConn.ConnectionID, sipStmConn);
@@ -333,7 +333,7 @@ namespace SIPSorcery.SIP
             try
             {
                 // Map IPv4 to IPv6 for dual mode socket sends.
-                if(dstEndPoint.AddressFamily == AddressFamily.InterNetwork && m_isDualMode)
+                if (dstEndPoint.AddressFamily == AddressFamily.InterNetwork && m_isDualMode)
                 {
                     dstEndPoint = new IPEndPoint(dstEndPoint.Address.MapToIPv6(), dstEndPoint.Port);
                 }
@@ -400,7 +400,7 @@ namespace SIPSorcery.SIP
                     logger.LogDebug($"ConnectAsync SIP {ProtDescr} Channel connect completed result for {ListeningSIPEndPoint}->{dstEndPoint} {connectTcs.Task.Result}.");
 
                     var remoteSIPEndPoint = new SIPEndPoint(SIPProtocol, clientSocket.RemoteEndPoint as IPEndPoint);
-                    SIPStreamConnection sipStmConn = new SIPStreamConnection(clientSocket,SIPEncoding,SIPBodyEncoding,  remoteSIPEndPoint, SIPProtocol);
+                    SIPStreamConnection sipStmConn = new SIPStreamConnection(clientSocket, SIPEncoding, SIPBodyEncoding, remoteSIPEndPoint, SIPProtocol);
                     sipStmConn.SIPMessageReceived += SIPTCPMessageReceived;
 
                     var postConnectResult = await OnClientConnect(sipStmConn, serverCertificateName).ConfigureAwait(false);
@@ -508,7 +508,7 @@ namespace SIPSorcery.SIP
                         SendOnConnected(sipStreamConn, buffer);
                         return Task.FromResult(SocketError.Success);
                     }
-                    else if(canInitiateConnection)
+                    else if (canInitiateConnection)
                     {
                         return ConnectClientAsync(dstEndPoint, buffer, serverCertificateName);
                     }
