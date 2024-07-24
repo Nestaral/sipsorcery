@@ -382,7 +382,7 @@ namespace SIPSorcery.SIP
 
             var sipuri = RemoteTarget;
 
-            if (RemoteTarget.Parameters.ToString().Contains("tls") && String.IsNullOrEmpty(RemoteTarget?.HostPort))
+            if (RemoteTarget.Parameters.ToString() != null && RemoteTarget.Parameters.ToString().Contains("tls") && String.IsNullOrEmpty(RemoteTarget?.HostPort))
             {
                 sipuri.Host = $"{RemoteTarget.Host}:{SIPConstants.DEFAULT_SIP_TLS_PORT}";
             }
