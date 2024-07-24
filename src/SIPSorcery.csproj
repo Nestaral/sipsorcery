@@ -51,6 +51,7 @@
         <RepositoryBranch>master</RepositoryBranch>
         <PackageTags>SIP WebRTC VoIP RTP SDP STUN ICE SIPSorcery</PackageTags>
         <PackageReleaseNotes>
+            -v6.2.7: fix ex
             -v6.2.6: fix tls
             -v6.2.5: fix onhold
             -v6.2.4: WebRTC fix for DTLS change in Chrome v124.
@@ -71,9 +72,9 @@
             -v6.0.1-pre: Added .net6 target.
         </PackageReleaseNotes>
         <NeutralLanguage>en</NeutralLanguage>
-        <Version>6.2.6</Version>
-        <AssemblyVersion>6.2.6</AssemblyVersion>
-        <FileVersion>6.2.6</FileVersion>
+        <Version>6.2.7</Version>
+        <AssemblyVersion>6.2.7</AssemblyVersion>
+        <FileVersion>6.2.7</FileVersion>
     </PropertyGroup>
 
     <PropertyGroup Label="SourceLink">
