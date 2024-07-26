@@ -299,7 +299,7 @@ namespace SIPSorcery.Media
                 _audioExtrasSource.SetSource(AudioSourcesEnum.Music);
             }
 
-            if (HasVideo)
+            if (HasVideo && _videoTestPatternSource != null)
             {
                 await Media.VideoSource.PauseVideo().ConfigureAwait(false);
 
@@ -319,7 +319,7 @@ namespace SIPSorcery.Media
                 await Media.AudioSource.ResumeAudio().ConfigureAwait(false);
             }
 
-            if (HasVideo || hasVideo)
+            if ((HasVideo || hasVideo) && _videoTestPatternSource != null)
             {
                 await _videoTestPatternSource.PauseVideo().ConfigureAwait(false);
 
